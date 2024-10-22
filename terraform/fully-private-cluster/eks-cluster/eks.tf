@@ -42,19 +42,11 @@ module "eks" {
   cluster_name    = local.name
   cluster_version = "1.30"
 
-  # EKS Addons
-  cluster_addons = {
-    coredns    = {}
-    kube-proxy = {}
-    vpc-cni    = {}
-  }
-
   vpc_id     = local.vpc.vpc_id
   subnet_ids = local.vpc.private_subnets
   
   # Automatically add the workstation IAM identity for cluster access
   enable_cluster_creator_admin_permissions = true
-
 
   #---------------------------------------
   # Note: This can further restricted to specific required for each Add-on and your application
