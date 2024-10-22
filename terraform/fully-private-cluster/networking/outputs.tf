@@ -1,8 +1,3 @@
-# output "configure_kubectl" {
-#   description = "Configure kubectl: make sure you're logged in with the correct AWS profile and run the following command to update your kubeconfig"
-#   value       = "aws eks --region ${local.region} update-kubeconfig --name ${module.eks.cluster_name}"
-# }
-
 output "vpc_endpoints" {
   description = "VPC Endpoint Names"
   value       = [for endpoint in module.vpc_endpoints.endpoints : endpoint.service_name]
@@ -23,3 +18,8 @@ output "vpc_endpoints" {
 #     + "com.amazonaws.ap-southeast-1.ssmmessages",
 #     + "com.amazonaws.ap-southeast-1.sts",
 #   ]
+
+
+output "vpc" {
+  value = module.vpc
+}

@@ -14,7 +14,7 @@ locals {
   name   = var.name
   region = var.region
 
-  vpc_cidr = "10.8.0.0/16"
+  vpc_cidr = var.vpc_cidr
   azs      = slice(data.aws_availability_zones.available.names, 0, 3)
 
   endpoints_list = ["autoscaling", "ecr.api", "ecr.dkr", "ec2", "ec2messages", "elasticloadbalancing", "sts", "kms", "logs", "ssm", "ssmmessages", "emr-containers"]

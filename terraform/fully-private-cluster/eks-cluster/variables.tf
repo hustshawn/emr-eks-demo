@@ -10,11 +10,6 @@ variable "region" {
   default     = "ap-southeast-1"
 }
 
-variable "vpc_cidr" {
-  description = ""
-  type        = string
-  default     = "10.8.0.0/16"
-}
 
 # RFC6598 range 100.64.0.0/10
 # Note you can only /16 range to VPC. You can add multiples of /16 if required
