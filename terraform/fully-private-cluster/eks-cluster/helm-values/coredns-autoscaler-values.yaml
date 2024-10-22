@@ -1,5 +1,9 @@
 nameOverride: kube-dns-autoscaler
 
+image:
+  repository: ${account}.dkr.ecr.${region}.amazonaws.com/k8s/cpa/cluster-proportional-autoscaler
+  pullPolicy: IfNotPresent
+
 # Formula for controlling the replicas. Adjust according to your needs
 #  replicas = max( ceil( cores * 1/coresPerReplica ) , ceil( nodes * 1/nodesPerReplica ) )
 #  replicas = min(replicas, max)

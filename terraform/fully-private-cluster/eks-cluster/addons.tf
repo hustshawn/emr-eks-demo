@@ -56,7 +56,9 @@ module "eks_blueprints_addons" {
   enable_cluster_proportional_autoscaler = true
   cluster_proportional_autoscaler = {
     values = [templatefile("${path.module}/helm-values/coredns-autoscaler-values.yaml", {
-      target = "deployment/coredns"
+        target = "deployment/coredns"
+        region = local.region
+        account = data.aws_caller_identity.current.account_id
     })]
     description = "Cluster Proportional Autoscaler for CoreDNS Service"
   }
@@ -66,7 +68,10 @@ module "eks_blueprints_addons" {
   #---------------------------------------
   enable_metrics_server = true
   metrics_server = {
-    values = [templatefile("${path.module}/helm-values/metrics-server-values.yaml", {})]
+    values = [templatefile("${path.module}/helm-values/metrics-server-values.yaml", {
+        region = local.region
+        account = data.aws_caller_identity.current.account_id
+    })]
   }
 
 #   #---------------------------------------

@@ -1,6 +1,6 @@
 # HA config for metrics-server
 image:
-  repository: registry.k8s.io/metrics-server/metrics-server
+  repository: ${account}.dkr.ecr.${region}.amazonaws.com/k8s/metrics-server/metrics-server
   pullPolicy: IfNotPresent
 
 serviceAccount:
