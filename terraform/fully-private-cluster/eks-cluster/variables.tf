@@ -9,12 +9,3 @@ variable "region" {
   type        = string
   default     = "ap-southeast-1"
 }
-
-
-# RFC6598 range 100.64.0.0/10
-# Note you can only /16 range to VPC. You can add multiples of /16 if required
-variable "secondary_cidr_blocks" {
-  description = "Secondary CIDR blocks to be attached to VPC"
-  type        = list(string)
-  default     = ["100.64.0.0/16"]
-}

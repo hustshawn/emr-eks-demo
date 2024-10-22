@@ -15,58 +15,6 @@ locals {
   }
 }
 
-# provider "aws" {
-#   region = local.region
-# }
-
-# # ECR always authenticates with `us-east-1` region
-# # Docs -> https://docs.aws.amazon.com/AmazonECR/latest/public/public-registries.html
-# provider "aws" {
-#   alias  = "ecr"
-#   region = "us-east-1"
-# }
-
-# provider "kubernetes" {
-#   host                   = module.eks.cluster_endpoint
-#   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-#   token                  = data.aws_eks_cluster_auth.this.token
-# }
-
-# provider "helm" {
-#   kubernetes {
-#     host                   = module.eks.cluster_endpoint
-#     cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-#     token                  = data.aws_eks_cluster_auth.this.token
-#   }
-# }
-
-# provider "kubectl" {
-#   apply_retry_count      = 30
-#   host                   = module.eks.cluster_endpoint
-#   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-#   load_config_file       = false
-#   token                  = data.aws_eks_cluster_auth.this.token
-# }
-
-# data "aws_eks_cluster_auth" "this" {
-#   name = module.eks.cluster_name
-# }
-
-# data "aws_ecrpublic_authorization_token" "token" {
-#   provider = aws.ecr
-# }
-
-# data "aws_caller_identity" "current" {}
-# data "aws_region" "current" {}
-# data "aws_partition" "current" {}
-data "aws_availability_zones" "available" {
-  # Do not include local zones
-  filter {
-    name   = "opt-in-status"
-    values = ["opt-in-not-required"]
-  }
-}
-
 
 # Get the state with data resources from s3 bucket tf-eks-remote-states 
 data "terraform_remote_state" "network_state" {
@@ -78,20 +26,9 @@ data "terraform_remote_state" "network_state" {
   }
 }
 
-# # A data resource to retrive the vpc by tag, Name -> fully-private-cluster
-# data "aws_vpc" "vpc" {
-#   filter {
-#     name   = "tag:Name"
-#     values = ["fully-private-cluster"]
-#   }
-# }
 
-# output "vpc" {
-#   value = data.terraform_remote_state.network_state.outputs.vpc
-# }
-
-output "vpc_id" {
-  value = local.vpc.vpc_id
+data "aws_vpc" "default" {
+  default = true
 }
 
 # ################################################################################
@@ -114,12 +51,24 @@ module "eks" {
 
   vpc_id     = local.vpc.vpc_id
   subnet_ids = local.vpc.private_subnets
+  
+  # Automatically add the workstation IAM identity for cluster access
+  enable_cluster_creator_admin_permissions = true
+
 
   #---------------------------------------
   # Note: This can further restricted to specific required for each Add-on and your application
   #---------------------------------------
   # Extend cluster security group rules
   cluster_security_group_additional_rules = {
+    default_vpc = {
+      description = "Allow ingress from default vpc"
+      type        = "ingress"
+      from_port   = 443
+      to_port     = 443
+      protocol    = "tcp"
+      cidr_blocks = [data.aws_vpc.default.cidr_block]
+    }
     ingress_nodes_ephemeral_ports_tcp = {
       description                = "Nodes on ephemeral ports"
       protocol                   = "tcp"
