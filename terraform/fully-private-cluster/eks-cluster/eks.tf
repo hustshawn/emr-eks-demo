@@ -11,10 +11,54 @@ locals {
 
   tags = {
     Blueprint  = local.name
-    GithubRepo = "github.com/aws-ia/terraform-aws-eks-blueprints"
+    GithubRepo = "github.com/awslabs/data-on-eks"
   }
 }
 
+# provider "aws" {
+#   region = local.region
+# }
+
+# # ECR always authenticates with `us-east-1` region
+# # Docs -> https://docs.aws.amazon.com/AmazonECR/latest/public/public-registries.html
+# provider "aws" {
+#   alias  = "ecr"
+#   region = "us-east-1"
+# }
+
+# provider "kubernetes" {
+#   host                   = module.eks.cluster_endpoint
+#   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+#   token                  = data.aws_eks_cluster_auth.this.token
+# }
+
+# provider "helm" {
+#   kubernetes {
+#     host                   = module.eks.cluster_endpoint
+#     cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+#     token                  = data.aws_eks_cluster_auth.this.token
+#   }
+# }
+
+# provider "kubectl" {
+#   apply_retry_count      = 30
+#   host                   = module.eks.cluster_endpoint
+#   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+#   load_config_file       = false
+#   token                  = data.aws_eks_cluster_auth.this.token
+# }
+
+# data "aws_eks_cluster_auth" "this" {
+#   name = module.eks.cluster_name
+# }
+
+# data "aws_ecrpublic_authorization_token" "token" {
+#   provider = aws.ecr
+# }
+
+# data "aws_caller_identity" "current" {}
+# data "aws_region" "current" {}
+# data "aws_partition" "current" {}
 data "aws_availability_zones" "available" {
   # Do not include local zones
   filter {
@@ -50,112 +94,112 @@ output "vpc_id" {
   value = local.vpc.vpc_id
 }
 
-# # ################################################################################
-# # # Cluster
-# # ################################################################################
+# ################################################################################
+# # Cluster
+# ################################################################################
 
-# module "eks" {
-#   source  = "terraform-aws-modules/eks/aws"
-#   version = "~> 20.11"
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 20.11"
 
-#   cluster_name    = local.name
-#   cluster_version = "1.30"
+  cluster_name    = local.name
+  cluster_version = "1.30"
 
-#   # EKS Addons
-#   cluster_addons = {
-#     coredns    = {}
-#     kube-proxy = {}
-#     vpc-cni    = {}
-#   }
+  # EKS Addons
+  cluster_addons = {
+    coredns    = {}
+    kube-proxy = {}
+    vpc-cni    = {}
+  }
 
-#   vpc_id     = local.vpc.vpc_id
-#   subnet_ids = local.vpc.private_subnets
+  vpc_id     = local.vpc.vpc_id
+  subnet_ids = local.vpc.private_subnets
 
-#   #---------------------------------------
-#   # Note: This can further restricted to specific required for each Add-on and your application
-#   #---------------------------------------
-#   # Extend cluster security group rules
-#   cluster_security_group_additional_rules = {
-#     ingress_nodes_ephemeral_ports_tcp = {
-#       description                = "Nodes on ephemeral ports"
-#       protocol                   = "tcp"
-#       from_port                  = 1025
-#       to_port                    = 65535
-#       type                       = "ingress"
-#       source_node_security_group = true
-#     }
-#   }
-#   # Extend node-to-node security group rules
-#   node_security_group_additional_rules = {
-#     ingress_self_all = {
-#       description = "Node to node all ports/protocols"
-#       protocol    = "-1"
-#       from_port   = 0
-#       to_port     = 0
-#       type        = "ingress"
-#       self        = true
-#     }
-#     ingress_fsx1 = {
-#       description = "Allows Lustre traffic between Lustre clients"
-#       cidr_blocks = local.vpc.private_subnets_cidr_blocks
-#       from_port   = 1021
-#       to_port     = 1023
-#       protocol    = "tcp"
-#       type        = "ingress"
-#     }
-#     ingress_fsx2 = {
-#       description = "Allows Lustre traffic between Lustre clients"
-#       cidr_blocks = local.vpc.private_subnets_cidr_blocks
-#       from_port   = 988
-#       to_port     = 988
-#       protocol    = "tcp"
-#       type        = "ingress"
-#     }
-#   }
+  #---------------------------------------
+  # Note: This can further restricted to specific required for each Add-on and your application
+  #---------------------------------------
+  # Extend cluster security group rules
+  cluster_security_group_additional_rules = {
+    ingress_nodes_ephemeral_ports_tcp = {
+      description                = "Nodes on ephemeral ports"
+      protocol                   = "tcp"
+      from_port                  = 1025
+      to_port                    = 65535
+      type                       = "ingress"
+      source_node_security_group = true
+    }
+  }
+  # Extend node-to-node security group rules
+  node_security_group_additional_rules = {
+    ingress_self_all = {
+      description = "Node to node all ports/protocols"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+      type        = "ingress"
+      self        = true
+    }
+    ingress_fsx1 = {
+      description = "Allows Lustre traffic between Lustre clients"
+      cidr_blocks = local.vpc.private_subnets_cidr_blocks
+      from_port   = 1021
+      to_port     = 1023
+      protocol    = "tcp"
+      type        = "ingress"
+    }
+    ingress_fsx2 = {
+      description = "Allows Lustre traffic between Lustre clients"
+      cidr_blocks = local.vpc.private_subnets_cidr_blocks
+      from_port   = 988
+      to_port     = 988
+      protocol    = "tcp"
+      type        = "ingress"
+    }
+  }
 
-#   eks_managed_node_group_defaults = {
-#     iam_role_additional_policies = {
-#       # Not required, but used in the example to access the nodes to inspect mounted volumes
-#       AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-#     }
-#   }
+  eks_managed_node_group_defaults = {
+    iam_role_additional_policies = {
+      # Not required, but used in the example to access the nodes to inspect mounted volumes
+      AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    }
+  }
 
-#   eks_managed_node_groups = {
-#     #  We recommend to have a MNG to place your critical workloads and add-ons
-#     #  Then rely on Karpenter to scale your workloads
-#     #  You can also make uses on nodeSelector and Taints/tolerations to spread workloads on MNG or Karpenter provisioners
-#     core_node_group = {
-#       name        = "core-node-group"
-#       description = "EKS managed node group example launch template"
+  eks_managed_node_groups = {
+    #  We recommend to have a MNG to place your critical workloads and add-ons
+    #  Then rely on Karpenter to scale your workloads
+    #  You can also make uses on nodeSelector and Taints/tolerations to spread workloads on MNG or Karpenter provisioners
+    core_node_group = {
+      name        = "core-node-group"
+      description = "EKS managed node group example launch template"
 
-#       min_size     = 1
-#       max_size     = 9
-#       desired_size = 3
+      min_size     = 1
+      max_size     = 9
+      desired_size = 3
 
-#       instance_types = ["m5.xlarge"]
+      instance_types = ["m5.xlarge"]
 
-#       ebs_optimized = true
-#       block_device_mappings = {
-#         xvda = {
-#           device_name = "/dev/xvda"
-#           ebs = {
-#             volume_size = 100
-#             volume_type = "gp3"
-#           }
-#         }
-#       }
+      ebs_optimized = true
+      block_device_mappings = {
+        xvda = {
+          device_name = "/dev/xvda"
+          ebs = {
+            volume_size = 100
+            volume_type = "gp3"
+          }
+        }
+      }
 
-#       labels = {
-#         WorkerType    = "ON_DEMAND"
-#         NodeGroupType = "core"
-#       }
+      labels = {
+        WorkerType    = "ON_DEMAND"
+        NodeGroupType = "core"
+      }
 
-#       tags = {
-#         Name                     = "core-node-grp",
-#         "karpenter.sh/discovery" = local.name
-#       }
-#     }
-#   }
+      tags = {
+        Name                     = "core-node-grp",
+        "karpenter.sh/discovery" = local.name
+      }
+    }
+  }
 
-#   tags = local.tags
-# }
+  tags = local.tags
+}
