@@ -17,7 +17,10 @@ locals {
   vpc_cidr = var.vpc_cidr
   azs      = slice(data.aws_availability_zones.available.names, 0, 3)
 
-  endpoints_list = ["autoscaling", "ecr.api", "ecr.dkr", "ec2", "ec2messages", "elasticloadbalancing", "sts", "kms", "logs", "ssm", "ssmmessages", "emr-containers"]
+  endpoints_list = [
+    "autoscaling", "ecr.api", "ecr.dkr", "ec2", "ec2messages", "elasticloadbalancing", "sts", "kms", "logs", "ssm", "ssmmessages", "emr-containers",
+    "sqs", "eks" # Karpenter specific: https://karpenter.sh/docs/getting-started/getting-started-with-karpenter/#private-clusters
+  ]
 
   tags = {
     Blueprint  = local.name
