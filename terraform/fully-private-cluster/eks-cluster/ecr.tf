@@ -7,6 +7,34 @@
 #   recovery_window_in_days = 0 # Set to 0 for testing purposes, this will immediately delete the secret. This action is irreversible. https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html
 # }
 
+#---------------------------------------------------------------
+# The IAM policy for EKS worker node to pull images via ECR
+# pull through cache, which need auto create the ECR repo.
+#---------------------------------------------------------------
+resource "aws_iam_policy" "ecr_repo_write" {
+  name_prefix = "${local.name}-ecr-repo-write"
+  path        = "/"
+  description = "IAM policy for ECR repository write access"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:CreateRepository",
+          "ecr:BatchImportUpstreamImage",
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 module "ecr" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "~> 2.2"

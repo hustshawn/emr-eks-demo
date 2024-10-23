@@ -1,4 +1,6 @@
-
+locals {
+  ecr_url = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${local.region}.amazonaws.com"
+}
 #---------------------------------------------------------------
 # IRSA for EBS CSI Driver
 #---------------------------------------------------------------
@@ -100,6 +102,16 @@ module "eks_blueprints_addons" {
     chart_version       = "1.0.5"
     repository_username = data.aws_ecrpublic_authorization_token.token.user_name
     repository_password = data.aws_ecrpublic_authorization_token.token.password
+    set = [
+      {
+        name = "controller.image.repository"
+        value= "${local.ecr_url}/ecr-public/karpenter/controller"
+      },
+      {
+        name ="settings.isolatedVPC"
+        value = true
+      }
+    ]
   }
 
 #   #---------------------------------------
