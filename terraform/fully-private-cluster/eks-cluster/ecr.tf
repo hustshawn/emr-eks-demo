@@ -54,6 +54,8 @@ module "ecr" {
       ecr_repository_prefix = "quay"
       upstream_registry_url = "quay.io"
     }
+    # Refer to below snippet if need the docker hub pull through cache.
+    # https://github.com/aws-ia/terraform-aws-eks-blueprints/blob/main/patterns/ecr-pull-through-cache/ecr.tf
     # dockerhub = {
     #   ecr_repository_prefix = "docker-hub"
     #   upstream_registry_url = "registry-1.docker.io"
