@@ -5,9 +5,12 @@ locals {
   vpc_cidr = "10.8.0.0/16"
   azs      = slice(data.aws_availability_zones.available.names, 0, 3)
 
-  endpoints_list = ["autoscaling", "ecr.api", "ecr.dkr", "ec2", "ec2messages", "elasticloadbalancing", "sts", "kms", "logs", "ssm", "ssmmessages", "emr-containers"]
-
   vpc = data.terraform_remote_state.network_state.outputs.vpc
+
+  additional_policies = {
+    AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    ECR = aws_iam_policy.ecr_repo_write.arn
+  }
 
   tags = {
     Blueprint  = local.name
@@ -143,5 +146,7 @@ module "eks" {
     }
   }
 
-  tags = local.tags
+  tags = merge(local.tags, {
+    "karpenter.sh/discovery" = local.name
+  })
 }
