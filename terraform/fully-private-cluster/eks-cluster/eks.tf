@@ -51,6 +51,14 @@ module "eks" {
   # Automatically add the workstation IAM identity for cluster access
   enable_cluster_creator_admin_permissions = true
 
+  access_entries = {
+    karpenter_nodes = {
+      principal_arn     = aws_iam_role.karpenter.arn
+      type              = "EC2_LINUX"
+      username          = "system:node:{{EC2PrivateDNSName}}"
+    }
+  }
+
   #---------------------------------------
   # Note: This can further restricted to specific required for each Add-on and your application
   #---------------------------------------

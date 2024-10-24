@@ -10,3 +10,7 @@ output "configure_kubectl" {
 output "vpc_id" {
   value = local.vpc.vpc_id
 }
+
+output "emr_containers" {
+  value = module.emr_containers
+}

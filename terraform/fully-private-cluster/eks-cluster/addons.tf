@@ -542,6 +542,23 @@ resource "aws_iam_instance_profile" "karpenter" {
   tags = local.tags
 }
 
+# This is essential as we created the node instance profile separately.
+resource "aws_iam_role_policy" "karpenter_controller_pass_role" {
+  name = "karpenter-controller-pass-role"
+  role = module.eks_blueprints_addons.karpenter.iam_role_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = "iam:PassRole"
+        Resource = aws_iam_role.karpenter.arn
+      }
+    ]
+  })
+}
+
 # #---------------------------------------------------------------
 # # Grafana Admin credentials resources
 # #---------------------------------------------------------------
