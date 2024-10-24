@@ -5,9 +5,12 @@ locals {
   vpc_cidr = "10.8.0.0/16"
   azs      = slice(data.aws_availability_zones.available.names, 0, 3)
 
-  endpoints_list = ["autoscaling", "ecr.api", "ecr.dkr", "ec2", "ec2messages", "elasticloadbalancing", "sts", "kms", "logs", "ssm", "ssmmessages", "emr-containers"]
-
   vpc = data.terraform_remote_state.network_state.outputs.vpc
+
+  additional_policies = {
+    AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    ECR = aws_iam_policy.ecr_repo_write.arn
+  }
 
   tags = {
     Blueprint  = local.name
@@ -47,6 +50,14 @@ module "eks" {
   
   # Automatically add the workstation IAM identity for cluster access
   enable_cluster_creator_admin_permissions = true
+
+  access_entries = {
+    karpenter_nodes = {
+      principal_arn     = aws_iam_role.karpenter.arn
+      type              = "EC2_LINUX"
+      username          = "system:node:{{EC2PrivateDNSName}}"
+    }
+  }
 
   #---------------------------------------
   # Note: This can further restricted to specific required for each Add-on and your application
@@ -143,5 +154,7 @@ module "eks" {
     }
   }
 
-  tags = local.tags
+  tags = merge(local.tags, {
+    "karpenter.sh/discovery" = local.name
+  })
 }

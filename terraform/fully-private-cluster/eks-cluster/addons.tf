@@ -1,5 +1,7 @@
 locals {
   ecr_url = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${local.region}.amazonaws.com"
+  partition  = data.aws_partition.current.partition
+  iam_role_policy_prefix = "arn:${local.partition}:iam::aws:policy"
 }
 #---------------------------------------------------------------
 # IRSA for EBS CSI Driver
@@ -102,6 +104,9 @@ module "eks_blueprints_addons" {
     chart_version       = "1.0.5"
     repository_username = data.aws_ecrpublic_authorization_token.token.user_name
     repository_password = data.aws_ecrpublic_authorization_token.token.password
+
+    karpenter_enable_instance_profile_creation = false
+    # Karpenter helm chart values: https://github.com/aws/karpenter-provider-aws/blob/main/charts/karpenter/values.yaml
     set = [
       {
         name = "controller.image.repository"
@@ -213,226 +218,226 @@ module "eks_blueprints_addons" {
 #---------------------------------------------------------------
 module "eks_data_addons" {
   source  = "aws-ia/eks-data-addons/aws"
-  version = "1.33.0" # ensure to update this to the latest/desired version
+  version = "1.34.0" # ensure to update this to the latest/desired version
 
   oidc_provider_arn = module.eks.oidc_provider_arn
 
-#   enable_karpenter_resources = true
+  enable_karpenter_resources = true
 
-#   karpenter_resources_helm_config = {
-#     spark-with-ebs = {
-#       values = [
-#         <<-EOT
-#       name: spark-with-ebs
-#       clusterName: ${module.eks.cluster_name}
-#       ec2NodeClass:
-#         karpenterRole: ${split("/", module.eks_blueprints_addons.karpenter.node_iam_role_arn)[1]}
-#         subnetSelectorTerms:
-#           tags:
-#             Name: "${module.eks.cluster_name}-private*"
-#         securityGroupSelectorTerms:
-#           tags:
-#             Name: ${module.eks.cluster_name}-node
-#         blockDeviceMappings:
-#           # Root device
-#           - deviceName: /dev/xvda
-#             ebs:
-#               volumeSize: 100Gi
-#               volumeType: gp3
-#               encrypted: true
-#       nodePool:
-#         labels:
-#           - type: karpenter
-#           - provisioner: spark-with-ebs
-#         requirements:
-#           - key: "karpenter.sh/capacity-type"
-#             operator: In
-#             values: ["spot", "on-demand"]
-#           - key: "kubernetes.io/arch"
-#             operator: In
-#             values: ["amd64"]
-#           - key: "karpenter.k8s.aws/instance-category"
-#             operator: In
-#             values: ["c"]
-#           - key: "karpenter.k8s.aws/instance-family"
-#             operator: In
-#             values: ["c5"]
-#           - key: "karpenter.k8s.aws/instance-cpu"
-#             operator: In
-#             values: ["4", "8", "16", "36"]
-#           - key: "karpenter.k8s.aws/instance-hypervisor"
-#             operator: In
-#             values: ["nitro"]
-#           - key: "karpenter.k8s.aws/instance-generation"
-#             operator: Gt
-#             values: ["2"]
-#         limits:
-#           cpu: 1000
-#         disruption:
-#           consolidationPolicy: WhenEmpty
-#           consolidateAfter: 30s
-#           expireAfter: 720h
-#         weight: 100
-#       EOT
-#       ]
-#     }
-#     spark-compute-optimized = {
-#       values = [
-#         <<-EOT
-#       name: spark-compute-optimized
-#       clusterName: ${module.eks.cluster_name}
-#       ec2NodeClass:
-#         karpenterRole: ${split("/", module.eks_blueprints_addons.karpenter.node_iam_role_arn)[1]}
-#         subnetSelectorTerms:
-#           tags:
-#             Name: "${module.eks.cluster_name}-private*"
-#         securityGroupSelectorTerms:
-#           tags:
-#             Name: ${module.eks.cluster_name}-node
-#         instanceStorePolicy: RAID0
+  karpenter_resources_helm_config = {
+    # spark-with-ebs = {
+    #   values = [
+    #     <<-EOT
+    #   name: spark-with-ebs
+    #   clusterName: ${module.eks.cluster_name}
+    #   ec2NodeClass:
+    #     karpenterRole: ${split("/", aws_iam_role.karpenter.arn)[1]}
+    #     subnetSelectorTerms:
+    #       tags:
+    #         Name: "${module.eks.cluster_name}-private*"
+    #         karpenter.sh/discovery: "${local.name}"
+    #     securityGroupSelectorTerms:
+    #       tags:
+    #         Name: ${module.eks.cluster_name}-node
+    #     blockDeviceMappings:
+    #       # Root device
+    #       - deviceName: /dev/xvda
+    #         ebs:
+    #           volumeSize: 100Gi
+    #           volumeType: gp3
+    #           encrypted: true
+    #   nodePool:
+    #     labels:
+    #       - type: karpenter
+    #       - provisioner: spark-with-ebs
+    #     requirements:
+    #       - key: "karpenter.sh/capacity-type"
+    #         operator: In
+    #         values: ["spot", "on-demand"]
+    #       - key: "kubernetes.io/arch"
+    #         operator: In
+    #         values: ["amd64"]
+    #       - key: "karpenter.k8s.aws/instance-category"
+    #         operator: In
+    #         values: ["c"]
+    #       - key: "karpenter.k8s.aws/instance-family"
+    #         operator: In
+    #         values: ["c5"]
+    #       - key: "karpenter.k8s.aws/instance-cpu"
+    #         operator: In
+    #         values: ["4", "8", "16", "36"]
+    #       - key: "karpenter.k8s.aws/instance-hypervisor"
+    #         operator: In
+    #         values: ["nitro"]
+    #       - key: "karpenter.k8s.aws/instance-generation"
+    #         operator: Gt
+    #         values: ["2"]
+    #     limits:
+    #       cpu: 1000
+    #     disruption:
+    #       consolidationPolicy: WhenEmpty
+    #       consolidateAfter: 30s
+    #       expireAfter: 720h
+    #     weight: 100
+    #   EOT
+    #   ]
+    # }
+    # spark-compute-optimized = {
+    #   values = [
+    #     <<-EOT
+    #   name: spark-compute-optimized
+    #   clusterName: ${module.eks.cluster_name}
+    #   ec2NodeClass:
+    #     karpenterRole: ${split("/", module.eks_blueprints_addons.karpenter.node_iam_role_arn)[1]}
+    #     subnetSelectorTerms:
+    #       tags:
+    #         Name: "${module.eks.cluster_name}-private*"
+    #     securityGroupSelectorTerms:
+    #       tags:
+    #         Name: ${module.eks.cluster_name}-node
+    #     instanceStorePolicy: RAID0
 
-#       nodePool:
-#         labels:
-#           - type: karpenter
-#           - provisioner: spark-compute-optimized
-#           - NodeGroupType: SparkComputeOptimized
-#         requirements:
-#           - key: "karpenter.sh/capacity-type"
-#             operator: In
-#             values: ["spot", "on-demand"]
-#           - key: "kubernetes.io/arch"
-#             operator: In
-#             values: ["amd64"]
-#           - key: "karpenter.k8s.aws/instance-category"
-#             operator: In
-#             values: ["c"]
-#           - key: "karpenter.k8s.aws/instance-family"
-#             operator: In
-#             values: ["c5d"]
-#           - key: "karpenter.k8s.aws/instance-cpu"
-#             operator: In
-#             values: ["4", "8", "16", "36"]
-#           - key: "karpenter.k8s.aws/instance-hypervisor"
-#             operator: In
-#             values: ["nitro"]
-#           - key: "karpenter.k8s.aws/instance-generation"
-#             operator: Gt
-#             values: ["2"]
-#         limits:
-#           cpu: 1000
-#         disruption:
-#           consolidationPolicy: WhenEmpty
-#           consolidateAfter: 30s
-#           expireAfter: 720h
-#         weight: 100
-#       EOT
-#       ]
-#     }
-#     spark-graviton-memory-optimized = {
-#       values = [
-#         <<-EOT
-#       name: spark-graviton-memory-optimized
-#       clusterName: ${module.eks.cluster_name}
-#       ec2NodeClass:
-#         karpenterRole: ${split("/", module.eks_blueprints_addons.karpenter.node_iam_role_arn)[1]}
-#         subnetSelectorTerms:
-#           tags:
-#             Name: "${module.eks.cluster_name}-private*"
-#         securityGroupSelectorTerms:
-#           tags:
-#             Name: ${module.eks.cluster_name}-node
-#         instanceStorePolicy: RAID0
-#       nodePool:
-#         labels:
-#           - type: karpenter
-#           - provisioner: spark-graviton-memory-optimized
-#           - NodeGroupType: SparkGravitonMemoryOptimized
-#         requirements:
-#           - key: "karpenter.sh/capacity-type"
-#             operator: In
-#             values: ["spot", "on-demand"]
-#           - key: "kubernetes.io/arch"
-#             operator: In
-#             values: ["arm64"]
-#           - key: "karpenter.k8s.aws/instance-category"
-#             operator: In
-#             values: ["r"]
-#           - key: "karpenter.k8s.aws/instance-family"
-#             operator: In
-#             values: ["r6gd"]
-#           - key: "karpenter.k8s.aws/instance-cpu"
-#             operator: In
-#             values: ["4", "8", "16", "32"]
-#           - key: "karpenter.k8s.aws/instance-hypervisor"
-#             operator: In
-#             values: ["nitro"]
-#           - key: "karpenter.k8s.aws/instance-generation"
-#             operator: Gt
-#             values: ["2"]
-#         limits:
-#           cpu: 1000
-#         disruption:
-#           consolidationPolicy: WhenEmpty
-#           consolidateAfter: 30s
-#           expireAfter: 720h
-#         weight: 50
-#       EOT
-#       ]
-#     }
-#     spark-memory-optimized = {
-#       values = [
-#         <<-EOT
-#       name: spark-memory-optimized
-#       clusterName: ${module.eks.cluster_name}
-#       ec2NodeClass:
-#         karpenterRole: ${split("/", module.eks_blueprints_addons.karpenter.node_iam_role_arn)[1]}
-#         subnetSelectorTerms:
-#           tags:
-#             Name: "${module.eks.cluster_name}-private*"
-#         securityGroupSelectorTerms:
-#           tags:
-#             Name: ${module.eks.cluster_name}-node
-#         instanceStorePolicy: RAID0
+    #   nodePool:
+    #     labels:
+    #       - type: karpenter
+    #       - provisioner: spark-compute-optimized
+    #       - NodeGroupType: SparkComputeOptimized
+    #     requirements:
+    #       - key: "karpenter.sh/capacity-type"
+    #         operator: In
+    #         values: ["spot", "on-demand"]
+    #       - key: "kubernetes.io/arch"
+    #         operator: In
+    #         values: ["amd64"]
+    #       - key: "karpenter.k8s.aws/instance-category"
+    #         operator: In
+    #         values: ["c"]
+    #       - key: "karpenter.k8s.aws/instance-family"
+    #         operator: In
+    #         values: ["c5d"]
+    #       - key: "karpenter.k8s.aws/instance-cpu"
+    #         operator: In
+    #         values: ["4", "8", "16", "36"]
+    #       - key: "karpenter.k8s.aws/instance-hypervisor"
+    #         operator: In
+    #         values: ["nitro"]
+    #       - key: "karpenter.k8s.aws/instance-generation"
+    #         operator: Gt
+    #         values: ["2"]
+    #     limits:
+    #       cpu: 1000
+    #     disruption:
+    #       consolidationPolicy: WhenEmpty
+    #       consolidateAfter: 30s
+    #       expireAfter: 720h
+    #     weight: 100
+    #   EOT
+    #   ]
+    # }
+    # spark-graviton-memory-optimized = {
+    #   values = [
+    #     <<-EOT
+    #   name: spark-graviton-memory-optimized
+    #   clusterName: ${module.eks.cluster_name}
+    #   ec2NodeClass:
+    #     karpenterRole: ${split("/", module.eks_blueprints_addons.karpenter.node_iam_role_arn)[1]}
+    #     subnetSelectorTerms:
+    #       tags:
+    #         Name: "${module.eks.cluster_name}-private*"
+    #     securityGroupSelectorTerms:
+    #       tags:
+    #         Name: ${module.eks.cluster_name}-node
+    #     instanceStorePolicy: RAID0
+    #   nodePool:
+    #     labels:
+    #       - type: karpenter
+    #       - provisioner: spark-graviton-memory-optimized
+    #       - NodeGroupType: SparkGravitonMemoryOptimized
+    #     requirements:
+    #       - key: "karpenter.sh/capacity-type"
+    #         operator: In
+    #         values: ["spot", "on-demand"]
+    #       - key: "kubernetes.io/arch"
+    #         operator: In
+    #         values: ["arm64"]
+    #       - key: "karpenter.k8s.aws/instance-category"
+    #         operator: In
+    #         values: ["r"]
+    #       - key: "karpenter.k8s.aws/instance-family"
+    #         operator: In
+    #         values: ["r6gd"]
+    #       - key: "karpenter.k8s.aws/instance-cpu"
+    #         operator: In
+    #         values: ["4", "8", "16", "32"]
+    #       - key: "karpenter.k8s.aws/instance-hypervisor"
+    #         operator: In
+    #         values: ["nitro"]
+    #       - key: "karpenter.k8s.aws/instance-generation"
+    #         operator: Gt
+    #         values: ["2"]
+    #     limits:
+    #       cpu: 1000
+    #     disruption:
+    #       consolidationPolicy: WhenEmpty
+    #       consolidateAfter: 30s
+    #       expireAfter: 720h
+    #     weight: 50
+    #   EOT
+    #   ]
+    # }
+    # spark-memory-optimized = {
+    #   values = [
+    #     <<-EOT
+    #   name: spark-memory-optimized
+    #   clusterName: ${module.eks.cluster_name}
+    #   ec2NodeClass:
+    #     karpenterRole: ${split("/", module.eks_blueprints_addons.karpenter.node_iam_role_arn)[1]}
+    #     subnetSelectorTerms:
+    #       tags:
+    #         Name: "${module.eks.cluster_name}-private*"
+    #     securityGroupSelectorTerms:
+    #       tags:
+    #         Name: ${module.eks.cluster_name}-node
+    #     instanceStorePolicy: RAID0
 
-#       nodePool:
-#         labels:
-#           - type: karpenter
-#           - provisioner: spark-memory-optimized
-#           - NodeGroupType: SparkMemoryOptimized
-#         requirements:
-#           - key: "karpenter.sh/capacity-type"
-#             operator: In
-#             values: ["spot", "on-demand"]
-#           - key: "kubernetes.io/arch"
-#             operator: In
-#             values: ["amd64"]
-#           - key: "karpenter.k8s.aws/instance-category"
-#             operator: In
-#             values: ["r"]
-#           - key: "karpenter.k8s.aws/instance-family"
-#             operator: In
-#             values: ["r5d"]
-#           - key: "karpenter.k8s.aws/instance-cpu"
-#             operator: In
-#             values: ["4", "8", "16", "32"]
-#           - key: "karpenter.k8s.aws/instance-hypervisor"
-#             operator: In
-#             values: ["nitro"]
-#           - key: "karpenter.k8s.aws/instance-generation"
-#             operator: Gt
-#             values: ["2"]
-#         limits:
-#           cpu: 1000
-#         disruption:
-#           consolidationPolicy: WhenEmpty
-#           consolidateAfter: 30s
-#           expireAfter: 720h
-#         weight: 100
-#       EOT
-#       ]
-#     }
-
-#   }
+    #   nodePool:
+    #     labels:
+    #       - type: karpenter
+    #       - provisioner: spark-memory-optimized
+    #       - NodeGroupType: SparkMemoryOptimized
+    #     requirements:
+    #       - key: "karpenter.sh/capacity-type"
+    #         operator: In
+    #         values: ["spot", "on-demand"]
+    #       - key: "kubernetes.io/arch"
+    #         operator: In
+    #         values: ["amd64"]
+    #       - key: "karpenter.k8s.aws/instance-category"
+    #         operator: In
+    #         values: ["r"]
+    #       - key: "karpenter.k8s.aws/instance-family"
+    #         operator: In
+    #         values: ["r5d"]
+    #       - key: "karpenter.k8s.aws/instance-cpu"
+    #         operator: In
+    #         values: ["4", "8", "16", "32"]
+    #       - key: "karpenter.k8s.aws/instance-hypervisor"
+    #         operator: In
+    #         values: ["nitro"]
+    #       - key: "karpenter.k8s.aws/instance-generation"
+    #         operator: Gt
+    #         values: ["2"]
+    #     limits:
+    #       cpu: 1000
+    #     disruption:
+    #       consolidationPolicy: WhenEmpty
+    #       consolidateAfter: 30s
+    #       expireAfter: 720h
+    #     weight: 100
+    #   EOT
+    #   ]
+    # }
+  }
 
 #   #---------------------------------------------------------------
 #   # Kubecost Add-on
@@ -480,6 +485,78 @@ module "eks_data_addons" {
 #       EOT
 #     ]
 #   }
+}
+#---------------------------------------------------------------
+# Karpenter Node Role and Node Profile etc
+# Addressed https://karpenter.sh/docs/getting-started/getting-started-with-karpenter/#private-clusters
+#---------------------------------------------------------------
+data "aws_iam_policy_document" "karpenter_assume_role" {
+  statement {
+    sid     = "KarpenterNodeAssumeRole"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "karpenter" {
+  # name_prefix = "KarpenterNodeRole-${local.name}"
+  name_prefix = substr("KarpenterNodeRole-${local.name}", 0, 38) # The name-prefix cannot over 38 chars
+
+  path        = "/"
+  description = "Karpenter EC2 node IAM role"
+
+  assume_role_policy    = try(data.aws_iam_policy_document.karpenter_assume_role.json, "")
+  force_detach_policies = true
+
+  tags = local.tags
+}
+
+resource "aws_iam_role_policy_attachment" "karpenter" {
+  for_each = { for k, v in {
+    AmazonEKSWorkerNodePolicy          = "${local.iam_role_policy_prefix}/AmazonEKSWorkerNodePolicy",
+    AmazonEC2ContainerRegistryReadOnly = "${local.iam_role_policy_prefix}/AmazonEC2ContainerRegistryReadOnly",
+    AmazonEKS_CNI_Policy               = "${local.iam_role_policy_prefix}/AmazonEKS_CNI_Policy"
+  } : k => v }
+
+  policy_arn = each.value
+  role       = aws_iam_role.karpenter.name
+}
+
+resource "aws_iam_role_policy_attachment" "additional" {
+  for_each = { for k, v in local.additional_policies : k => v }
+
+  policy_arn = each.value
+  role       = aws_iam_role.karpenter.name
+}
+
+resource "aws_iam_instance_profile" "karpenter" {
+  # name        = try(var.karpenter_node.iam_role_use_name_prefix, true) ? null : local.input_karpenter_node_instance_profile_name
+  name_prefix = "KarpenterNodeInstanceProfile-${local.name}"
+  path        = "/"
+  role       = aws_iam_role.karpenter.name
+
+  tags = local.tags
+}
+
+# This is essential as we created the node instance profile separately.
+resource "aws_iam_role_policy" "karpenter_controller_pass_role" {
+  name = "karpenter-controller-pass-role"
+  role = module.eks_blueprints_addons.karpenter.iam_role_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = "iam:PassRole"
+        Resource = aws_iam_role.karpenter.arn
+      }
+    ]
+  })
 }
 
 # #---------------------------------------------------------------
