@@ -9,3 +9,9 @@ variable "region" {
   type        = string
   default     = "ap-southeast-1"
 }
+
+variable "enable_amazon_prometheus" {
+  description = "Enable AWS Managed Prometheus service"
+  type        = bool
+  default     = true
+}

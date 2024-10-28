@@ -1,6 +1,6 @@
 locals {
-  ecr_url = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${local.region}.amazonaws.com"
-  partition  = data.aws_partition.current.partition
+  ecr_registry           = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${local.region}.amazonaws.com"
+  partition              = data.aws_partition.current.partition
   iam_role_policy_prefix = "arn:${local.partition}:iam::aws:policy"
 }
 #---------------------------------------------------------------
@@ -60,9 +60,9 @@ module "eks_blueprints_addons" {
   enable_cluster_proportional_autoscaler = true
   cluster_proportional_autoscaler = {
     values = [templatefile("${path.module}/helm-values/coredns-autoscaler-values.yaml", {
-        target = "deployment/coredns"
-        region = local.region
-        account = data.aws_caller_identity.current.account_id
+      target  = "deployment/coredns"
+      region  = local.region
+      account = data.aws_caller_identity.current.account_id
     })]
     description = "Cluster Proportional Autoscaler for CoreDNS Service"
   }
@@ -73,22 +73,22 @@ module "eks_blueprints_addons" {
   enable_metrics_server = true
   metrics_server = {
     values = [templatefile("${path.module}/helm-values/metrics-server-values.yaml", {
-        region = local.region
-        account = data.aws_caller_identity.current.account_id
+      region  = local.region
+      account = data.aws_caller_identity.current.account_id
     })]
   }
 
-#   #---------------------------------------
-#   # Cluster Autoscaler
-#   #---------------------------------------
-#   enable_cluster_autoscaler = true
-#   cluster_autoscaler = {
-#     create_role = true
-#     values = [templatefile("${path.module}/helm-values/cluster-autoscaler-values.yaml", {
-#       aws_region     = var.region,
-#       eks_cluster_id = module.eks.cluster_name
-#     })]
-#   }
+  #   #---------------------------------------
+  #   # Cluster Autoscaler
+  #   #---------------------------------------
+  #   enable_cluster_autoscaler = true
+  #   cluster_autoscaler = {
+  #     create_role = true
+  #     values = [templatefile("${path.module}/helm-values/cluster-autoscaler-values.yaml", {
+  #       aws_region     = var.region,
+  #       eks_cluster_id = module.eks.cluster_name
+  #     })]
+  #   }
 
   #---------------------------------------
   # Karpenter Autoscaler for EKS Cluster
@@ -109,95 +109,97 @@ module "eks_blueprints_addons" {
     # Karpenter helm chart values: https://github.com/aws/karpenter-provider-aws/blob/main/charts/karpenter/values.yaml
     set = [
       {
-        name = "controller.image.repository"
-        value= "${local.ecr_url}/ecr-public/karpenter/controller"
+        name  = "controller.image.repository"
+        value = "${local.ecr_registry}/ecr-public/karpenter/controller"
       },
       {
-        name ="settings.isolatedVPC"
+        name  = "settings.isolatedVPC"
         value = true
       }
     ]
   }
 
-#   #---------------------------------------
-#   # CloudWatch metrics for EKS
-#   #---------------------------------------
-#   enable_aws_cloudwatch_metrics = true
-#   aws_cloudwatch_metrics = {
-#     values = [templatefile("${path.module}/helm-values/aws-cloudwatch-metrics-values.yaml", {})]
-#   }
+  #   #---------------------------------------
+  #   # CloudWatch metrics for EKS
+  #   #---------------------------------------
+  #   enable_aws_cloudwatch_metrics = true
+  #   aws_cloudwatch_metrics = {
+  #     values = [templatefile("${path.module}/helm-values/aws-cloudwatch-metrics-values.yaml", {})]
+  #   }
 
   #---------------------------------------
   # Adding AWS Load Balancer Controller
   #---------------------------------------
   enable_aws_load_balancer_controller = false
 
-#   #---------------------------------------
-#   # Enable FSx for Lustre CSI Driver
-#   #---------------------------------------
-#   enable_aws_fsx_csi_driver = var.enable_fsx_for_lustre
-#   aws_fsx_csi_driver = {
-#     # INFO: fsx node daemonset won't be placed on Karpenter nodes with taints without the following toleration
-#     values = [
-#       <<-EOT
-#         node:
-#           tolerations:
-#             - operator: Exists
-#       EOT
-#     ]
-#   }
+  #   #---------------------------------------
+  #   # Enable FSx for Lustre CSI Driver
+  #   #---------------------------------------
+  #   enable_aws_fsx_csi_driver = var.enable_fsx_for_lustre
+  #   aws_fsx_csi_driver = {
+  #     # INFO: fsx node daemonset won't be placed on Karpenter nodes with taints without the following toleration
+  #     values = [
+  #       <<-EOT
+  #         node:
+  #           tolerations:
+  #             - operator: Exists
+  #       EOT
+  #     ]
+  #   }
 
-#   #---------------------------------------
-#   # AWS for FluentBit - DaemonSet
-#   #---------------------------------------
-#   # Fluentbit is required to stream the logs to S3  when EMR Spark Operator is enabled
-#   enable_aws_for_fluentbit = var.enable_emr_spark_operator
-#   aws_for_fluentbit_cw_log_group = {
-#     use_name_prefix   = false
-#     name              = "/${local.name}/aws-fluentbit-logs" # Add-on creates this log group
-#     retention_in_days = 30
-#   }
-#   aws_for_fluentbit = {
-#     s3_bucket_arns = [
-#       module.s3_bucket.s3_bucket_arn,
-#       "${module.s3_bucket.s3_bucket_arn}/*"
-#     ]
-#     values = [templatefile("${path.module}/helm-values/aws-for-fluentbit-values.yaml", {
-#       region               = local.region,
-#       cloudwatch_log_group = "/${local.name}/aws-fluentbit-logs"
-#       s3_bucket_name       = module.s3_bucket.s3_bucket_id
-#       cluster_name         = module.eks.cluster_name
-#     })]
-#   }
+  #   #---------------------------------------
+  #   # AWS for FluentBit - DaemonSet
+  #   #---------------------------------------
+  #   # Fluentbit is required to stream the logs to S3  when EMR Spark Operator is enabled
+  #   enable_aws_for_fluentbit = var.enable_emr_spark_operator
+  #   aws_for_fluentbit_cw_log_group = {
+  #     use_name_prefix   = false
+  #     name              = "/${local.name}/aws-fluentbit-logs" # Add-on creates this log group
+  #     retention_in_days = 30
+  #   }
+  #   aws_for_fluentbit = {
+  #     s3_bucket_arns = [
+  #       module.s3_bucket.s3_bucket_arn,
+  #       "${module.s3_bucket.s3_bucket_arn}/*"
+  #     ]
+  #     values = [templatefile("${path.module}/helm-values/aws-for-fluentbit-values.yaml", {
+  #       region               = local.region,
+  #       cloudwatch_log_group = "/${local.name}/aws-fluentbit-logs"
+  #       s3_bucket_name       = module.s3_bucket.s3_bucket_id
+  #       cluster_name         = module.eks.cluster_name
+  #     })]
+  #   }
 
-#   #---------------------------------------
-#   # Prommetheus and Grafana stack
-#   #---------------------------------------
-#   #---------------------------------------------------------------
-#   # Install Kafka Monitoring Stack with Prometheus and Grafana
-#   # 1- Grafana port-forward `kubectl port-forward svc/kube-prometheus-stack-grafana 8080:80 -n kube-prometheus-stack`
-#   # 2- Grafana Admin user: admin
-#   # 3- Get admin user password: `aws secretsmanager get-secret-value --secret-id <output.grafana_secret_name> --region $AWS_REGION --query "SecretString" --output text`
-#   #---------------------------------------------------------------
-#   enable_kube_prometheus_stack = true
-#   kube_prometheus_stack = {
-#     values = [
-#       var.enable_amazon_prometheus ? templatefile("${path.module}/helm-values/kube-prometheus-amp-enable.yaml", {
-#         region              = local.region
-#         amp_sa              = local.amp_ingest_service_account
-#         amp_irsa            = module.amp_ingest_irsa[0].iam_role_arn
-#         amp_remotewrite_url = "https://aps-workspaces.${local.region}.amazonaws.com/workspaces/${aws_prometheus_workspace.amp[0].id}/api/v1/remote_write"
-#         amp_url             = "https://aps-workspaces.${local.region}.amazonaws.com/workspaces/${aws_prometheus_workspace.amp[0].id}"
-#       }) : templatefile("${path.module}/helm-values/kube-prometheus.yaml", {})
-#     ]
-#     chart_version = "48.1.1"
-#     set_sensitive = [
-#       {
-#         name  = "grafana.adminPassword"
-#         value = data.aws_secretsmanager_secret_version.admin_password_version.secret_string
-#       }
-#     ],
-#   }
+  #---------------------------------------
+  # Prommetheus and Grafana stack
+  #---------------------------------------
+  #---------------------------------------------------------------
+  # Install Kafka Monitoring Stack with Prometheus and Grafana
+  # 1- Grafana port-forward `kubectl port-forward svc/kube-prometheus-stack-grafana 8080:80 -n kube-prometheus-stack`
+  # 2- Grafana Admin user: admin
+  # 3- Get admin user password: `aws secretsmanager get-secret-value --secret-id <output.grafana_secret_name> --region $AWS_REGION --query "SecretString" --output text`
+  #---------------------------------------------------------------
+  enable_kube_prometheus_stack = true
+  kube_prometheus_stack = {
+    values = [
+      var.enable_amazon_prometheus ? templatefile("${path.module}/helm-values/kube-prometheus-amp-enable.yaml", {
+        region              = local.region
+        ecr_registry        = local.ecr_registry
+        amp_sa              = local.amp_ingest_service_account
+        amp_irsa            = module.amp_ingest_irsa[0].iam_role_arn
+        amp_remotewrite_url = "https://aps-workspaces.${local.region}.amazonaws.com/workspaces/${aws_prometheus_workspace.amp[0].id}/api/v1/remote_write"
+        amp_url             = "https://aps-workspaces.${local.region}.amazonaws.com/workspaces/${aws_prometheus_workspace.amp[0].id}"
+      }) : templatefile("${path.module}/helm-values/kube-prometheus.yaml", {})
+    ]
+    # chart_version = "45.1.1"
+    chart_version = "65.5.0"
+    set_sensitive = [
+      {
+        name  = "grafana.adminPassword"
+        value = data.aws_secretsmanager_secret_version.admin_password_version.secret_string
+      }
+    ],
+  }
 
   tags = local.tags
 }
@@ -439,52 +441,52 @@ module "eks_data_addons" {
     # }
   }
 
-#   #---------------------------------------------------------------
-#   # Kubecost Add-on
-#   #---------------------------------------------------------------
-#   # Note: Kubecost add-on depends on Kube Prometheus Stack add-on for storing the metrics
-#   enable_kubecost = var.enable_kubecost
-#   kubecost_helm_config = {
-#     values              = [templatefile("${path.module}/helm-values/kubecost-values.yaml", {})]
-#     version             = "1.104.5"
-#     repository_username = data.aws_ecrpublic_authorization_token.token.user_name
-#     repository_password = data.aws_ecrpublic_authorization_token.token.password
-#   }
+  #   #---------------------------------------------------------------
+  #   # Kubecost Add-on
+  #   #---------------------------------------------------------------
+  #   # Note: Kubecost add-on depends on Kube Prometheus Stack add-on for storing the metrics
+  #   enable_kubecost = var.enable_kubecost
+  #   kubecost_helm_config = {
+  #     values              = [templatefile("${path.module}/helm-values/kubecost-values.yaml", {})]
+  #     version             = "1.104.5"
+  #     repository_username = data.aws_ecrpublic_authorization_token.token.user_name
+  #     repository_password = data.aws_ecrpublic_authorization_token.token.password
+  #   }
 
-#   #---------------------------------------------------------------
-#   # Apache YuniKorn Add-on
-#   #---------------------------------------------------------------
-#   enable_yunikorn = var.enable_yunikorn
-#   yunikorn_helm_config = {
-#     values = [templatefile("${path.module}/helm-values/yunikorn-values.yaml", {
-#       image_version = "1.2.0"
-#     })]
-#   }
+  #   #---------------------------------------------------------------
+  #   # Apache YuniKorn Add-on
+  #   #---------------------------------------------------------------
+  #   enable_yunikorn = var.enable_yunikorn
+  #   yunikorn_helm_config = {
+  #     values = [templatefile("${path.module}/helm-values/yunikorn-values.yaml", {
+  #       image_version = "1.2.0"
+  #     })]
+  #   }
 
-#   #---------------------------------------------------------------
-#   # EMR Spark Operator
-#   #---------------------------------------------------------------
-#   enable_emr_spark_operator = var.enable_emr_spark_operator
-#   emr_spark_operator_helm_config = {
-#     repository_username = data.aws_ecr_authorization_token.token.user_name
-#     repository_password = data.aws_ecr_authorization_token.token.password
-#     values = [templatefile("${path.module}/helm-values/emr-spark-operator-values.yaml", {
-#       aws_region = var.region
-#     })]
-#   }
+  #   #---------------------------------------------------------------
+  #   # EMR Spark Operator
+  #   #---------------------------------------------------------------
+  #   enable_emr_spark_operator = var.enable_emr_spark_operator
+  #   emr_spark_operator_helm_config = {
+  #     repository_username = data.aws_ecr_authorization_token.token.user_name
+  #     repository_password = data.aws_ecr_authorization_token.token.password
+  #     values = [templatefile("${path.module}/helm-values/emr-spark-operator-values.yaml", {
+  #       aws_region = var.region
+  #     })]
+  #   }
 
-#   #---------------------------------------------------------------
-#   # Spark History Server Add-on
-#   #---------------------------------------------------------------
-#   # Spark history server is required only when EMR Spark Operator is enabled
-#   enable_spark_history_server = var.enable_emr_spark_operator
-#   spark_history_server_helm_config = {
-#     values = [
-#       <<-EOT
-#       sparkHistoryOpts: "-Dspark.history.fs.logDirectory=s3a://${module.s3_bucket.s3_bucket_id}/${aws_s3_object.this.key}"
-#       EOT
-#     ]
-#   }
+  #   #---------------------------------------------------------------
+  #   # Spark History Server Add-on
+  #   #---------------------------------------------------------------
+  #   # Spark history server is required only when EMR Spark Operator is enabled
+  #   enable_spark_history_server = var.enable_emr_spark_operator
+  #   spark_history_server_helm_config = {
+  #     values = [
+  #       <<-EOT
+  #       sparkHistoryOpts: "-Dspark.history.fs.logDirectory=s3a://${module.s3_bucket.s3_bucket_id}/${aws_s3_object.this.key}"
+  #       EOT
+  #     ]
+  #   }
 }
 #---------------------------------------------------------------
 # Karpenter Node Role and Node Profile etc
@@ -537,7 +539,7 @@ resource "aws_iam_instance_profile" "karpenter" {
   # name        = try(var.karpenter_node.iam_role_use_name_prefix, true) ? null : local.input_karpenter_node_instance_profile_name
   name_prefix = "KarpenterNodeInstanceProfile-${local.name}"
   path        = "/"
-  role       = aws_iam_role.karpenter.name
+  role        = aws_iam_role.karpenter.name
 
   tags = local.tags
 }
@@ -551,43 +553,43 @@ resource "aws_iam_role_policy" "karpenter_controller_pass_role" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Action = "iam:PassRole"
+        Effect   = "Allow"
+        Action   = "iam:PassRole"
         Resource = aws_iam_role.karpenter.arn
       }
     ]
   })
 }
 
-# #---------------------------------------------------------------
-# # Grafana Admin credentials resources
-# #---------------------------------------------------------------
-# data "aws_secretsmanager_secret_version" "admin_password_version" {
-#   secret_id  = aws_secretsmanager_secret.grafana.id
-#   depends_on = [aws_secretsmanager_secret_version.grafana]
-# }
+#---------------------------------------------------------------
+# Grafana Admin credentials resources
+#---------------------------------------------------------------
+data "aws_secretsmanager_secret_version" "admin_password_version" {
+  secret_id  = aws_secretsmanager_secret.grafana.id
+  depends_on = [aws_secretsmanager_secret_version.grafana]
+}
 
-# resource "random_password" "grafana" {
-#   length           = 16
-#   special          = true
-#   override_special = "@_"
-# }
+resource "random_password" "grafana" {
+  length           = 16
+  special          = true
+  override_special = "@_"
+}
 
-# resource "random_string" "grafana" {
-#   length = 4
-#   lower  = true
-# }
+resource "random_string" "grafana" {
+  length = 4
+  lower  = true
+}
 
-# #tfsec:ignore:aws-ssm-secret-use-customer-key
-# resource "aws_secretsmanager_secret" "grafana" {
-#   name                    = "${local.name}-grafana-${random_string.grafana.result}"
-#   recovery_window_in_days = 0 # Set to zero for this example to force delete during Terraform destroy
-# }
+#tfsec:ignore:aws-ssm-secret-use-customer-key
+resource "aws_secretsmanager_secret" "grafana" {
+  name_prefix             = "${local.name}-grafana-"
+  recovery_window_in_days = 0 # Set to zero for this example to force delete during Terraform destroy
+}
 
-# resource "aws_secretsmanager_secret_version" "grafana" {
-#   secret_id     = aws_secretsmanager_secret.grafana.id
-#   secret_string = random_password.grafana.result
-# }
+resource "aws_secretsmanager_secret_version" "grafana" {
+  secret_id     = aws_secretsmanager_secret.grafana.id
+  secret_string = random_password.grafana.result
+}
 
 # # Creating an s3 bucket for Spark History event logs
 # module "s3_bucket" {

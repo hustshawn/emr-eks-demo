@@ -1,7 +1,8 @@
 
 # Karpenter default EC2NodeClass and NodePool
 locals {
-  karpenter_node_profile = split("/", aws_iam_instance_profile.karpenter.arn)[1]
+  # karpenter_node_profile = split("/", aws_iam_instance_profile.karpenter.arn)[1]
+  karpenter_node_profile = module.eks_blueprints_addons.karpenter.node_instance_profile_name
 }
 
 resource "kubectl_manifest" "karpenter_default_ec2_node_class" {
