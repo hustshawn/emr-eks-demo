@@ -13,7 +13,7 @@ This directory contains scripts and configurations for setting up an Amazon EKS 
 ## Step-by-Step Setup Guide
 ### 1. Environment Setup
 
-1. Set the required environment variables, you may change the variables to your own preferences:
+Set the required environment variables, you may change the variables to your own preferences:
 ```bash
 export KARPENTER_NAMESPACE="karpenter"
 export KARPENTER_VERSION="1.0.7"
@@ -22,6 +22,7 @@ export AWS_PARTITION="aws"
 export CLUSTER_NAME="karpenter-irsa-private-cluster"
 export AWS_DEFAULT_REGION="ap-southeast-1"
 export AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+export ECR_URL="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
 export TEMPOUT="$(mktemp)"
 ```
 
@@ -103,7 +104,7 @@ addons:
   version: latest
 EOF
 ```
-*Note*: Before deploying the cluster, please make sure you are satisfy with the configs. Especially the VPC subnets and `privateCluster` fields.
+**Note**: Before deploying the cluster, please make sure you are satisfy with the configs. Especially the VPC subnets and `privateCluster` fields.
 
 Deploy the cluster:
 
@@ -122,8 +123,6 @@ export KARPENTER_IAM_ROLE_ARN="arn:${AWS_PARTITION}:iam::${AWS_ACCOUNT_ID}:role/
 *Note*: Before installing Karpenter, you may need to put Karpenter image in your own ECR repository. In this example, we will using the ECR pull through cache feature, so we specify the image by setting the `controller.image.repository` field. Please change accordingly for your own use case.
 
 ```bash
-export ECR_URL="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
-
 helm registry logout public.ecr.aws
 helm upgrade --install karpenter oci://public.ecr.aws/karpenter/karpenter --version "${KARPENTER_VERSION}" \
   --namespace "${KARPENTER_NAMESPACE}" --create-namespace \
@@ -143,7 +142,7 @@ helm upgrade --install karpenter oci://public.ecr.aws/karpenter/karpenter --vers
 ```
 
 ### 6. Create Instance Profile
-This is required for Karpenter setup in private cluster. Because the `EC2NodeClass` resource will use it, so that the Karpenter node can join the cluster.
+This is required for Karpenter setup in private cluster. Because the `EC2NodeClass` resource will refer to the instance profile, so that the Karpenter node can join the cluster.
 
 ```bash
 aws iam create-instance-profile --instance-profile-name "KarpenterNodeInstanceProfile-${CLUSTER_NAME}"
@@ -152,7 +151,6 @@ aws iam add-role-to-instance-profile --instance-profile-name "KarpenterNodeInsta
 ```
 
 ### 7. Configure Karpenter Resources
-
 
 To Create the NodePool and EC2NodeClass configurations. The below is just an example to demonstrate the Karpenter resources are working. You may change the configurations accordingly for your own use case.
 
@@ -217,20 +215,26 @@ kubectl apply -f karpenter-resources.yaml
 ```bash
 kubectl get nodepool,ec2nodeclass
 ```
+
 You should see something like the following:
-```
+
+```text
 NAME                            NODECLASS   NODES   READY   AGE
 nodepool.karpenter.sh/default   default     1       True    10h
 
 NAME                                     READY   AGE
 ec2nodeclass.karpenter.k8s.aws/default   True    10h
 ```
+
 Both resources status should be in `True` and `Ready` status.
 
 
 ## Important Notes
+
 ### ECR Pull Permissions
+
 Add the following IAM policy to the node role for ECR image pulling:
+
 ```json
 {
     "Version": "2012-10-17",
