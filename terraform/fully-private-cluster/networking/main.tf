@@ -19,7 +19,8 @@ locals {
 
   endpoints_list = [
     "autoscaling", "ecr.api", "ecr.dkr", "ec2", "ec2messages", "elasticloadbalancing", "sts", "kms", "logs", "ssm", "ssmmessages", "emr-containers",
-    "sqs", "eks" # Karpenter specific: https://karpenter.sh/docs/getting-started/getting-started-with-karpenter/#private-clusters
+    "sqs", "eks", # Karpenter specific: https://karpenter.sh/docs/getting-started/getting-started-with-karpenter/#private-clusters
+    "eks-auth"    # This is required if using EKS Pod Identity
   ]
 
   tags = {

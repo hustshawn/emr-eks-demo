@@ -1,3 +1,6 @@
+*.tfvars
 *.terraform*
 *.tfstate*
 *planfile
+
+.DS_Store
