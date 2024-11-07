@@ -11,9 +11,11 @@ This directory contains scripts and configurations for setting up an Amazon EKS 
 - `kubectl` installed
 
 ## Step-by-Step Setup Guide
+
 ### 1. Environment Setup
 
 Set the required environment variables, you may change the variables to your own preferences:
+
 ```bash
 export KARPENTER_NAMESPACE="karpenter"
 export KARPENTER_VERSION="1.0.7"
@@ -104,6 +106,7 @@ addons:
   version: latest
 EOF
 ```
+
 **Note**: Before deploying the cluster, please make sure you are satisfy with the configs. Especially the VPC subnets and `privateCluster` fields.
 
 Deploy the cluster:
@@ -120,7 +123,8 @@ export KARPENTER_IAM_ROLE_ARN="arn:${AWS_PARTITION}:iam::${AWS_ACCOUNT_ID}:role/
 ```
 
 ### 5. Install Karpenter
-*Note*: Before installing Karpenter, you may need to put Karpenter image in your own ECR repository. In this example, we will using the ECR pull through cache feature, so we specify the image by setting the `controller.image.repository` field. Please change accordingly for your own use case.
+
+**Note**: Before installing Karpenter, you may need to put Karpenter image in your own ECR repository. In this example, we will using the ECR pull through cache feature, so we specify the image by setting the `controller.image.repository` field. Please change accordingly for your own use case.
 
 ```bash
 helm registry logout public.ecr.aws
@@ -142,6 +146,7 @@ helm upgrade --install karpenter oci://public.ecr.aws/karpenter/karpenter --vers
 ```
 
 ### 6. Create Instance Profile
+
 This is required for Karpenter setup in private cluster. Because the `EC2NodeClass` resource will refer to the instance profile, so that the Karpenter node can join the cluster.
 
 ```bash
@@ -227,7 +232,6 @@ ec2nodeclass.karpenter.k8s.aws/default   True    10h
 ```
 
 Both resources status should be in `True` and `Ready` status.
-
 
 ## Important Notes
 
